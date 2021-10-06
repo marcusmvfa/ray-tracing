@@ -8,7 +8,7 @@
 #include <fstream>
 #include <iostream>
 #include <iomanip>
-//#include <thread>
+#include <thread>
 
 #include "rtweekend.h"
 #include "vec3.h"
@@ -139,11 +139,15 @@ color ray_color(const ray& r, const hittable& world, int depth) {
     return (1.0-t)*color(1.0, 1.0, 1.0) + t*color(0.5, 0.7, 1.0);
 }
 
-void trace_lines(int thread_id, int start_line, int end_line, int image_width, int image_height, camera *cam, hittable_list world, std::ostream outfile){
+void trace_lines(int thread_id, int start_line, int end_line, int image_width, int image_height, camera *cam, hittable_list world, image *img){
 	const int samples_per_pixel = 100;
 	const int max_depth = 50;
+
+//	ofstream outfile;
+//		outfile.open("image.ppm");
+
 	for (int j = start_line; j < end_line; j++) {
-			std::cerr << "\rScanlines remaining: " << j << ' ' << std::flush;
+			std::cerr << "\rThread: " << thread_id << "- Scanlines remaining: " << j << ' ' << std::flush;
 			for (int i = 0; i < image_width; ++i) {
 				color pixel_color(0, 0, 0);
 				for (int s = 0; s < samples_per_pixel; ++s) {
@@ -152,9 +156,15 @@ void trace_lines(int thread_id, int start_line, int end_line, int image_width, i
 					ray r = cam->get_ray(u, v);
 					pixel_color += ray_color(r, world, max_depth);
 				}
-				write_color(outfile, pixel_color, samples_per_pixel);
+//				write_color(outfile, pixel_color, samples_per_pixel);
+				img->set(i, image_height -j , pixel_color, samples_per_pixel);
 			}
 		}
+//	outfile.close();
+}
+
+void imprimir(int idthread, int numberline){
+	std::cerr << 'id da thread:' << idthread << ' - ' << numberline;
 }
 
 int main() {
@@ -162,17 +172,14 @@ int main() {
 	const int samples_per_pixel = 100;
 		const int max_depth = 50;
 	    const auto aspect_ratio = 16.0 / 9.0;
-	    const int image_width = 350;
+	    const int image_width = 360;
 	    const int image_height = static_cast<int>(image_width / aspect_ratio);
-	    const int number_threads = 2;
+	    const int number_threads = 8;
 	    const int lines_thread = image_height / number_threads;
 	    int start = 0;
+	    image img(image_width, image_height);
 	    //conjunto de threads
 //	    std::vector<std::thread> thread_vec;
-
-	    std::cout << "height da imagem " << image_height;
-	    std::cerr << "\nDone.\n";
-
 
 	    // Camera
 	    camera cam;
@@ -201,54 +208,61 @@ int main() {
 	    auto vertical = vec3(0, viewport_height, 0);
 	    auto lower_left_corner = origin - horizontal/2 - vertical/2 - vec3(0, 0, focal_length);
 
+//	    unsigned char *img = new unsigned char[image_width * image_height * 3 * sizeof(int)];
+//	    	cel_size = sizeof(unsigned char) * 3;
+//	    	line_size = cel_size * image_width;
+
 	// Render
 
 	ofstream outfile;
-	outfile.open("image.ppm");
+	outfile.open("imagem1.bmp");
+//	outfile << "P3\n" << image_width << ' ' << image_height << "\n255\n";
 
 	//	#Colocar o esquema de ler o arquivo linha por linha
 
 
 	//Thread
 
+	std::vector<std::thread> threads;
 
-	//Utilizando threads
-//
-//	for(int i =0; i < number_threads; i++){
-//
-//		if(i + 1 == number_threads)
-//			//Colocar o objeto em memória
-//			thread_vec[i] = thread(trace_lines, i, start, image_height, image_width, image_height, &cam, world, outfile);
-//		else
-//			thread_vec[i] = thread(trace_lines, i, start, start + lines_thread, image_width, image_height, &cam, world, outfile);
-//
-//		start += lines_thread;
-//	}
-//
-//	for(int i = 0; i < number_threads; i ++){
-//		thread_vec[i].join();
-//
-//	}
+	  for (int i = 0; i < number_threads ; i++) {
+		  if(i + 1 == number_threads)
+		  			//Colocar o objeto em memória
+		  			threads.push_back(thread(trace_lines, i, start, image_height, image_width, image_height, &cam, world, &img));
+		  		else
+//		  			threads.push_back(thread(imprimir, i, start));
+		  			threads.push_back(thread(trace_lines, i, start, start + lines_thread, image_width, image_height, &cam, world, &img));
+
+		  		start += lines_thread;
+	  }
+
+	  for (auto &th : threads) {
+	    th.join();
+	  }
+
+	  img.writeBitmapFile(outfile);
 
 //
-	for (int j = image_height - 1; j >= 0; --j) {
-		std::cerr << "\rScanlines remaining: " << j << ' ' << std::flush;
-		for (int i = 0; i < image_width; ++i) {
-			color pixel_color(0, 0, 0);
-			for (int s = 0; s < samples_per_pixel; ++s) {
-				auto u = (i + random_double()) / (image_width-1);
-				auto v = (j + random_double()) / (image_height-1);
-				ray r = cam.get_ray(u, v);
-				pixel_color += ray_color(r, world, max_depth);
-			}
-			write_color(outfile, pixel_color, samples_per_pixel);
-		}
-	}
+//
+//	for (int j = image_height - 1; j >= 0; --j) {
+//		std::cerr << "\rScanlines remaining: " << j << ' ' << std::flush;
+//		for (int i = 0; i < image_width; ++i) {
+//			color pixel_color(0, 0, 0);
+//			for (int s = 0; s < samples_per_pixel; ++s) {
+//				auto u = (i + random_double()) / (image_width-1);
+//				auto v = (j + random_double()) / (image_height-1);
+//				ray r = cam.get_ray(u, v);
+//				pixel_color += ray_color(r, world, max_depth);
+//			}
+//			write_color(outfile, pixel_color, samples_per_pixel);
+//
+//		}
+//	}
 	std::cerr << "\nDone.\n";
-
+//
 	outfile.close();
-
-	outfile.open("image.bmp", ios::binary | ios::out);
-	writeBitmapFile(outfile, image_width, image_height);
-	outfile.close();
+//
+//	outfile.open("image.bmp", ios::binary | ios::out);
+//	writeBitmapFile(outfile, image_width, image_height);
+//	outfile.close();
 }
