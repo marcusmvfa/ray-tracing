@@ -26,6 +26,7 @@
 #include "read_file_controller.h"
 
 #include <string>
+#include "moving_sphere.h"
 
 using namespace std;
 
@@ -191,6 +192,10 @@ hittable_list random_scene() {
 					// diffuse
 					auto albedo = color::random() * color::random();
 					sphere_material = make_shared<lambertian>(albedo);
+					auto center2 = center + vec3(0, random_double(0, .5), 0);
+					world.add(
+							make_shared<moving_sphere>(center, center2, 0.0,
+									1.0, 0.2, sphere_material));
 					world.add(
 							make_shared<sphere>(center, 0.2, sphere_material));
 				} else if (choose_mat < 0.95) {
@@ -224,10 +229,10 @@ hittable_list random_scene() {
 
 int main() {
 	// Image
-    const int samples_per_pixel = 100;
+	const int samples_per_pixel = 100;
 	const int max_depth = 35;
 	const auto aspect_ratio = 16.0 / 9.0;
-	    const int image_width = 260;
+	const int image_width = 260;
 	const int image_height = static_cast<int>(image_width / aspect_ratio);
 	const int number_threads = 8;
 	const int lines_thread = image_height / number_threads;
@@ -245,8 +250,8 @@ int main() {
 	auto dist_to_focus = 10.0;
 	auto aperture = 0.1;
 
-	camera cam(lookfrom, lookat, vup, 20, aspect_ratio, aperture,
-			dist_to_focus);
+	camera cam(lookfrom, lookat, vup, 20, aspect_ratio, aperture, dist_to_focus,
+			0.0, 1.0);
 
 	// World
 	auto world = random_scene();
@@ -269,19 +274,36 @@ int main() {
 //	}
 
 	//	#Colocar o esquema de ler o arquivo linha por linha
+	//[0,2,5],[
 
-	for (int imag = 1; imag < 30; imag++) {
+	double x = -7;
+	double z = 0;
 
-		const int angle = 40;
+	for (int imag = 0; imag < 50; imag++) {
 
-		point3 lookfrom(-imag + 10, 2, -imag + 5);
+		if(x <= -7){
+			z = imag * 0.2;
+		}
+		if(z >= 7){
+			x = imag * 0.2;
+		}
+		if(x >= 7){
+			z= imag * -0.2;
+		}
+		if(z <= -7){
+			x = imag * -0.2;
+		}
+
+		cout << "( " << x << "," << z << ")";
+
+		point3 lookfrom(x , 2, z);
 		point3 lookat(0, 0, 0);
 		vec3 vup(0, 1, 0);
 		auto dist_to_focus = 10.0;
 		auto aperture = 0.1;
 
-		camera cam(lookfrom, lookat, vup, 20, aspect_ratio, aperture,
-				dist_to_focus);
+		camera cam(lookfrom, lookat, vup, 30, aspect_ratio, aperture,
+				dist_to_focus, 0.0, 1.0);
 
 		std::cout << "\nNovaImagem" << imag << "\n";
 
