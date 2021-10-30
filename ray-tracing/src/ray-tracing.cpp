@@ -232,7 +232,7 @@ int main() {
 	const int samples_per_pixel = 100;
 	const int max_depth = 35;
 	const auto aspect_ratio = 16.0 / 9.0;
-	const int image_width = 260;
+	const int image_width = 480;
 	const int image_height = static_cast<int>(image_width / aspect_ratio);
 	const int number_threads = 8;
 	const int lines_thread = image_height / number_threads;
@@ -276,24 +276,25 @@ int main() {
 	//	#Colocar o esquema de ler o arquivo linha por linha
 	//[0,2,5],[
 
-	double x = -7;
-	double z = 0;
+	double x = 7;
+	double z = -7;
 
-	for (int imag = 0; imag < 50; imag++) {
+	for (int imag = 0; imag < 70; imag++) {
 
-		if(x <= -7){
-			z = imag * 0.2;
+		if(x == -7 && z < 7){
+			z = z + (1 * 0.2);
 		}
-		if(z >= 7){
-			x = imag * 0.2;
+		else if(z == 7 && x < 7){
+			x = x + (1 * 0.2);
 		}
-		if(x >= 7){
-			z= imag * -0.2;
+		else if(x == 7 && z > -7){
+			z = z + (1 * -0.2);
 		}
-		if(z <= -7){
-			x = imag * -0.2;
+		else if(z == -7 && x > -7){
+			x = x + (1 * -0.2);
 		}
 
+		cout << "x < 7? " << (x < 7);
 		cout << "( " << x << "," << z << ")";
 
 		point3 lookfrom(x , 2, z);
