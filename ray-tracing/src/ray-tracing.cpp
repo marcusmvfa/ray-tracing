@@ -146,7 +146,7 @@ color ray_color(const ray &r, const hittable &world, int depth) {
 void trace_lines(int thread_id, int start_line, int end_line, int image_width,
 		int image_height, camera *cam, hittable_list world, image *img) {
 	const int samples_per_pixel = 100;
-	const int max_depth = 50;
+	const int max_depth = 35;
 
 //	ofstream outfile;
 //		outfile.open("image.ppm");
@@ -176,8 +176,8 @@ void imprimir(int idthread, int numberline) {
 hittable_list random_scene() {
 	hittable_list world;
 
-	auto ground_material = make_shared<lambertian>(color(0.5, 0.5, 0.5));
-	world.add(make_shared<sphere>(point3(0, -1000, 0), 1000, ground_material));
+	auto checker = make_shared<checker_texture>(color(0.2, 0.3, 0.1), color(0.9, 0.9, 0.9));
+	    world.add(make_shared<sphere>(point3(0,-1000,0), 1000, make_shared<lambertian>(checker)));
 
 	for (int a = -3; a < 3; a++) {
 		for (int b = -3; b < 3; b++) {
@@ -194,7 +194,7 @@ hittable_list random_scene() {
 					sphere_material = make_shared<lambertian>(albedo);
 					auto center2 = center + vec3(0, random_double(0, .5), 0);
 					world.add(
-							make_shared<moving_sphere>(center, center2, 0.0,
+							make_shared<moving_sphere>(center, center2, random_double(0, .5) ,
 									1.0, 0.2, sphere_material));
 					world.add(
 							make_shared<sphere>(center, 0.2, sphere_material));
@@ -227,12 +227,32 @@ hittable_list random_scene() {
 	return world;
 }
 
+hittable_list two_spheres() {
+    hittable_list objects;
+
+    auto checker = make_shared<checker_texture>(color(0.2, 0.3, 0.1), color(0.9, 0.9, 0.9));
+
+    objects.add(make_shared<sphere>(point3(0,-10, 0), 10, make_shared<lambertian>(checker)));
+    objects.add(make_shared<sphere>(point3(0, 10, 0), 10, make_shared<lambertian>(checker)));
+
+    return objects;
+}
+
+hittable_list earth() {
+    auto earth_texture = make_shared<image_texture>("earthmap.jpg");
+    auto earth_surface = make_shared<lambertian>(earth_texture);
+    auto globe = make_shared<sphere>(point3(0,0,0), 2, earth_surface);
+
+    return hittable_list(globe);
+}
+
+
 int main() {
 	// Image
 	const int samples_per_pixel = 100;
 	const int max_depth = 35;
 	const auto aspect_ratio = 16.0 / 9.0;
-	const int image_width = 480;
+	const int image_width = 260;
 	const int image_height = static_cast<int>(image_width / aspect_ratio);
 	const int number_threads = 8;
 	const int lines_thread = image_height / number_threads;
@@ -248,13 +268,44 @@ int main() {
 	point3 lookat(0, 0, 0);
 	vec3 vup(0, 1, 0);
 	auto dist_to_focus = 10.0;
-	auto aperture = 0.1;
+	auto aperture = 0.0;
+
+	auto vfov = 40.0;
+
+	//Lista de objetos
+	hittable_list world;
+
 
 	camera cam(lookfrom, lookat, vup, 20, aspect_ratio, aperture, dist_to_focus,
 			0.0, 1.0);
 
 	// World
-	auto world = random_scene();
+	switch (0) {
+	    case 1:
+	        world = random_scene();
+	        lookfrom = point3(13,2,3);
+	        lookat = point3(0,0,0);
+	        vfov = 20.0;
+	        aperture = 0.1;
+	        break;
+
+	    case 2:
+	        world = two_spheres();
+	        lookfrom = point3(13,2,3);
+	        lookat = point3(0,0,0);
+	        vfov = 20.0;
+	        break;
+
+	    default:
+	           case 4:
+	               world = earth();
+	               lookfrom = point3(13,2,3);
+	               lookat = point3(0,0,0);
+	               vfov = 20.0;
+	               break;
+	}
+
+
 	auto material_ground = make_shared<lambertian>(color(0.8, 0.8, 0.0));
 	auto material_center = make_shared<lambertian>(color(0.7, 0.3, 0.3));
 	auto material_left = make_shared<metal>(color(0.8, 0.8, 0.8), 0.3);
@@ -276,37 +327,47 @@ int main() {
 	//	#Colocar o esquema de ler o arquivo linha por linha
 	//[0,2,5],[
 
-	double x = 7;
-	double z = -7;
+	double x = -7;
+	double z = 7;
+	double jump = 0.0;
 
-	for (int imag = 0; imag < 70; imag++) {
+	for (int imag = 0; imag < 1; imag++) {
+		if (imag < 10)
+			jump = (imag * 0.2);
+		else if (imag >= 10 && imag < 20)
+			jump = jump + ((imag / 20) * -0.2);
+		else if (imag >= 20 && imag < 30)
+			jump = jump + ((imag / 30) * 0.2);
+		else if (imag >= 30 && imag < 40)
+			jump = jump + ((imag / 40) * -0.2);
 
-		if(x == -7 && z < 7){
+		if (x == -7 && z < 7) {
 			z = z + (1 * 0.2);
-		}
-		else if(z == 7 && x < 7){
+		} else if (z == 7 && x < 7) {
 			x = x + (1 * 0.2);
-		}
-		else if(x == 7 && z > -7){
+		} else if (x == 7 && z > -7) {
 			z = z + (1 * -0.2);
-		}
-		else if(z == -7 && x > -7){
+		} else if (z == -7 && x > -7) {
 			x = x + (1 * -0.2);
 		}
 
-		cout << "x < 7? " << (x < 7);
-		cout << "( " << x << "," << z << ")";
+		shared_ptr<hittable> s = world.get(imag);
 
-		point3 lookfrom(x , 2, z);
+		cout << "\n tipo: " << typeid(*s).name() << endl << "é moving_sphere :" << typeid(*s).operator ==(typeid(moving_sphere)) << "\n";
+
+		point3 lookfrom(13, 2, 3);
 		point3 lookat(0, 0, 0);
 		vec3 vup(0, 1, 0);
 		auto dist_to_focus = 10.0;
 		auto aperture = 0.1;
 
-		camera cam(lookfrom, lookat, vup, 30, aspect_ratio, aperture,
+		camera cam(lookfrom, lookat, vup, vfov, aspect_ratio, aperture,
 				dist_to_focus, 0.0, 1.0);
 
-		std::cout << "\nNovaImagem" << imag << "\n";
+		cout << "\n\n Jump: " << jump << endl;
+
+
+		std::cout << "\nNovaImagem " << imag << "\n";
 
 		std::string file_name = "imagens/imagem";
 		file_name += std::to_string(imag);

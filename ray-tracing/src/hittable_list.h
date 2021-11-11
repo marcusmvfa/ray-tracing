@@ -28,9 +28,13 @@ class hittable_list : public hittable {
         	return objects.size();
         }
 
-        string getMaterial(int index){
-        	return typeid(objects.at(index)).name();
+//        string getMaterial(int index){
+//        	return objects.at(index)->getName();
+//
+//        }
 
+        shared_ptr<hittable> get(int index){
+        	return objects.at(index);
         }
 
         virtual bool hit(
